@@ -1,11 +1,14 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBolt, faCity, faInfoCircle, faSeedling, faShieldAlt, faSmile, faTint } from '@fortawesome/free-solid-svg-icons';
 import Container from 'react-bootstrap/Container';
+import Alert from 'react-bootstrap/Alert';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Table from 'react-bootstrap/Table'
+import ToggleButton from 'react-bootstrap/ToggleButton'
 
 import './App.css';
+import React from 'react';
 
 const Scrap = 1;
 const ScrapCategories = 2;
@@ -22,7 +25,15 @@ function ConcreteIcon() {
   </svg>;
 }
 
-function Upkeep(props) {
+function upkeepCell(name, amount, details) {
+  return (<td key={name}><span style={{'textDecorationLine': 'underline', 'textDecorationStyle': 'dotted'}} title={(details || []).join('\n')}>{amount || 0}</span></td>);
+}
+
+function detailString(delta, plot) {
+  return (delta > 0 ? '+' : '') + delta.toString() + ' from ' + plot.count.toString() + ' level ' + plot.level + ' ' + plot.name + ' plot' + (plot.count === 1 ? '' : 's');
+}
+
+function UpkeepComponent(props) {
   var upkeep = 0;
   var details = [];
   props.plots.forEach((plot) => {
@@ -30,66 +41,225 @@ function Upkeep(props) {
     if (plotUpkeep.hasOwnProperty(props.resource)) {
       var delta = plotUpkeep[props.resource] * plot.count;
       upkeep = upkeep + delta;
-      var detailString = (delta > 0 ? '+' : '') + delta.toString() + ' from ' + plot.count.toString() + ' ' + plot.name + ' plot' + (plot.count === 1 ? '' : 's');
-      details.push(detailString);
+      details.push(detailString(delta, plot));
     }
   });
-  return (<td key={props.resource}><span style={{'text-decoration-line': 'underline', 'text-decoration-style': 'dotted'}} title={(details || []).join('\n')}>{upkeep || 0}</span></td>);
+  return upkeepCell(props.resource, upkeep, details);
+}
+
+function UpkeepCategory(props) {
+  var upkeep = 0;
+  var details = [];
+  props.plots.forEach((plot) => {
+    var plotUpkeep = plotTypes[plot.name].upkeep[plot.level - 1];
+    var delta = 0;
+    componentsByCategory[props.category].forEach((resource) => {
+      delta = delta + (plotUpkeep[resource] || 0) * plot.count;
+    })
+    upkeep = upkeep + delta;
+    details.push(detailString(delta, plot));
+  });
+  return upkeepCell(props.category, upkeep, details);
 }
 
 function Settlement(props) {
   var plots = props.settlement.plots;
-  var resources = tableColumns.map(resource => {
-    return <Upkeep plots={plots} resource={resource} />
-  })
+  var resources = ['Food', 'Water', 'Power', 'Safety', 'Happiness', 'Caps', 'Storage'].map(resource => <UpkeepComponent key={resource} plots={plots} resource={resource} />);
+  if (props.difficulty === ScrapComponents) {
+    resources = resources.concat(tableColumns.map(resource => {
+      return <UpkeepComponent key={resource} plots={plots} resource={resource} />
+    }))
+  } else if (props.difficulty === ScrapCategories) {
+    resources = resources.concat(['Building Materials', 'Machine Parts', 'Organic Materials', 'Rare Materials'].map(category => {
+      return <UpkeepCategory key={category} plots={plots} category={category} />
+    }))
+  } else if (props.difficulty === Scrap) {
+
+  }
   return (<tr>
-    <td><FontAwesomeIcon icon={faCity} /> {props.name}</td>
+    <td><FontAwesomeIcon icon={faCity} style={{color: props.settlement.claimed ? 'green' : 'red' }} /> {props.name}</td>
     {resources}
   </tr>);
 }
 
+function ResourceHeader(props) {
+  if (props.difficulty === ScrapComponents) {
+    return (<thead>
+      <tr>
+        <th scope='col'>Name</th>
+        <th colSpan={5} scope='col'>Settlement Resources</th>
+        <th scope='col'>Caps</th>
+        <th scope='col'>Scrap Storage</th>
+        <th colSpan={7} scope='col'>Building Materials</th>
+        <th colSpan={9} scope='col'>Machine Parts</th>
+        <th colSpan={9} scope='col'>Organic Materials</th>
+        <th colSpan={6} scope='col'>Rare Materials</th>
+      </tr>
+      <tr>
+        <th></th>
+        <th><FontAwesomeIcon icon={faSeedling} title='Food' /></th>
+        <th><FontAwesomeIcon icon={faTint} title='Water' /></th>
+        <th><FontAwesomeIcon icon={faBolt} title='Power' /></th>
+        <th><FontAwesomeIcon icon={faShieldAlt} title='Safety' /></th>
+        <th><FontAwesomeIcon icon={faSmile} title='Happiness' /></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th><ConcreteIcon /></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+    </thead>);
+  } else if (props.difficulty === ScrapCategories) {
+    return (<thead>
+      <tr>
+        <th scope='col'>Name</th>
+        <th colSpan={5} scope='col'>Settlement Resources</th>
+        <th scope='col'>Caps</th>
+        <th scope='col'>Scrap Storage</th>
+        <th scope='col'>Building Materials</th>
+        <th scope='col'>Machine Parts</th>
+        <th scope='col'>Organic Materials</th>
+        <th scope='col'>Rare Materials</th>
+      </tr>
+      <tr>
+        <th></th>
+        <th><FontAwesomeIcon icon={faSeedling} title='Food' /></th>
+        <th><FontAwesomeIcon icon={faTint} title='Water' /></th>
+        <th><FontAwesomeIcon icon={faBolt} title='Power' /></th>
+        <th><FontAwesomeIcon icon={faShieldAlt} title='Safety' /></th>
+        <th><FontAwesomeIcon icon={faSmile} title='Happiness' /></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+    </thead>);
+  } else if (props.difficulty === Scrap) {
+    return (<thead>
+      <tr>
+        <th scope='col'>Name</th>
+        <th colSpan={5} scope='col'>Settlement Resources</th>
+        <th scope='col'>Caps</th>
+        <th scope='col'>Scrap Storage</th>
+        <th scope='col'>Scrap</th>
+      </tr>
+      <tr>
+        <th></th>
+        <th><FontAwesomeIcon icon={faSeedling} title='Food' /></th>
+        <th><FontAwesomeIcon icon={faTint} title='Water' /></th>
+        <th><FontAwesomeIcon icon={faBolt} title='Power' /></th>
+        <th><FontAwesomeIcon icon={faShieldAlt} title='Safety' /></th>
+        <th><FontAwesomeIcon icon={faSmile} title='Happiness' /></th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+    </thead>);
+  } else {
+    return (<Alert variant='danger'>Unrecognized difficulty level: {props.difficulty}</Alert>);
+  }
+}
+
+class Planner extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      difficulty: ScrapCategories,
+      showUnclaimed: true,
+    };
+  };
+
+  changeDifficulty = (event) => {
+    this.setState({difficulty: parseInt(event.target.value)});
+  };
+
+  toggleSettlements = (checked) => {
+    this.setState({showUnclaimed: checked});
+  };
+
+  render() {
+    return (
+      <Container>
+        <Row>
+          <Col colSpan={2}>Options</Col>
+        </Row>
+        <Row>
+          <Col>Resource Complexity</Col>
+          <Col>
+            <select onChange={(e) => this.changeDifficulty(e)} value={this.state.difficulty}>
+              <option key={Scrap} value={Scrap}>Scrap</option>
+              <option key={ScrapCategories} value={ScrapCategories}>Scrap Categories</option>
+              <option key={ScrapComponents} value={ScrapComponents}>Scrap Components</option>
+            </select>
+          </Col>
+        </Row>
+        <Row>
+          <Col>Show Unclaimed Settlements</Col>
+          <Col>
+            <ToggleButton type="checkbox" onChange={(e) => this.toggleSettlements(e.currentTarget.checked)} value={this.state.showUnclaimed ? 'yes' : 'no' } checked={this.state.showUnclaimed} />
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <Table>
+              <ResourceHeader difficulty={this.state.difficulty} />
+              <tbody>
+                {this.props.settlements.filter(s => this.state.showUnclaimed || s.claimed ).map(settlement =>
+                <Settlement key={settlement.name} name={settlement.name} difficulty={this.state.difficulty} settlement={settlement} expanded={false} caravan={false} />
+                )}
+              </tbody>
+            </Table>
+          </Col>
+        </Row>
+      </Container>
+    );
+  };
+}
+
 function App() {
-  const difficulty = ScrapComponents;
-  const settlementItems = settlements.map(settlement =>
-    <Settlement name={settlement.name} settlement={settlement} expanded={false} caravan={false} />
-  );
-  return (
-    <Table>
-      <thead>
-        <tr>
-          <th scope='col'>Name</th>
-          <th colspan={5} scope='col'>Settlement Resources</th>
-          <th scope='col'>Caps</th>
-          <th scope='col'>Scrap Storage</th>
-          <th colspan={7} scope='col'>Building Materials</th>
-          <th colspan={9} scope='col'>Machine Parts</th>
-          <th colspan={9} scope='col'>Organic Materials</th>
-          <th colspan={6} scope='col'>Rare Materials</th>
-        </tr>
-        <tr>
-          <th></th>
-          <th><FontAwesomeIcon icon={faSeedling} title='Food' /></th>
-          <th><FontAwesomeIcon icon={faTint} title='Water' /></th>
-          <th><FontAwesomeIcon icon={faBolt} title='Power' /></th>
-          <th><FontAwesomeIcon icon={faShieldAlt} title='Safety' /></th>
-          <th><FontAwesomeIcon icon={faSmile} title='Happiness' /></th>
-          <th></th>
-          <th></th>
-          <th></th>
-          <th><ConcreteIcon /></th>
-        </tr>
-      </thead>
-      <tbody>
-        {settlementItems}
-      </tbody>
-    </Table>
-  );
+  return (<Planner settlements={settlements} />);
 }
 
 export default App;
 
 const settlements = [
-  // 'Abernathy Farm': {},
+  {
+    name: 'Abernathy Farm',
+    claimed: false,
+    plots: [],
+    nonPlots: [],
+  },
   // 'Boston Airport': {},
   // 'Bunker Hill': {},
   // 'The Castle': {},
@@ -369,10 +539,14 @@ const resources = {
   'Nuclear Material': 'Rare Materials',
 };
 
+const componentsByCategory = {
+  'Building Materials': ['Aluminum', 'Asbestos', 'Concrete', 'Fiberglass', 'Glass', 'Steel', 'Wood'],
+  'Machine Parts': ['Circuitry', 'Copper', 'Gears', 'Lead', 'Plastic', 'Rubber', 'Screws', 'Silver', 'Springs'],
+  'Organic Materials': ['Acid', 'Adhesive', 'Bone', 'Ceramic', 'Cloth', 'Cork', 'Fertilizer', 'Leather', 'Oil'],
+  'Rare Materials': ['Antiseptic', 'Ballistic Fiber', 'Crystal', 'Fiber Optics', 'Gold', 'Nuclear Material'],
+}
+
 const tableColumns = [
-  'Food', 'Water', 'Power', 'Safety', 'Happiness',
-  'Caps',
-  'Storage',
   'Aluminum', 'Asbestos', 'Concrete', 'Fiberglass', 'Glass', 'Steel', 'Wood',
   'Circuitry', 'Copper', 'Gears', 'Lead', 'Plastic', 'Rubber', 'Screws', 'Silver', 'Springs',
   'Acid', 'Adhesive', 'Bone', 'Ceramic', 'Cloth', 'Cork', 'Fertilizer', 'Leather', 'Oil',
